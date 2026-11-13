@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AOS — Kantor Virtual Agent AI (Prototipe)</title>
+<style>
+:root{--bg:#0f1220;--panel:#171b2e;--line:#2a3050;--txt:#e7e9f3;--mut:#8b91b0;--acc:#7c6cff;--ok:#22c55e;--warn:#f59e0b;--bad:#ef4444}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--txt);font:13px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+header{display:flex;align-items:center;gap:14px;padding:10px 16px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+header h1{font-size:15px;margin:0;font-weight:650}
+.tag{font-size:11px;padding:2px 8px;border-radius:99px;background:#2b2450;color:#c9c2ff}
+.grow{flex:1}
+.meter{display:flex;align-items:center;gap:8px;color:var(--mut)}
+.bar{width:140px;height:8px;background:#262b45;border-radius:99px;overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#22c55e,#f59e0b);transition:width .4s}
+button{font:inherit;border:1px solid var(--line);background:#20263f;color:var(--txt);padding:6px 10px;border-radius:8px;cursor:pointer}
+button:hover{border-color:#4a5180}
+.stop{background:#3a1520;border-color:#6b2232;color:#ffb4c0;font-weight:600}
+body.halted .stop{background:#14532d;border-color:#166534;color:#bbf7d0}
+main{display:grid;grid-template-columns:1fr 340px;gap:12px;padding:12px}
+@media(max-width:980px){main{grid-template-columns:1fr}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px}
+.card h2{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--mut);margin:0;padding:10px 12px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between}
+#office{position:relative;width:100%;aspect-ratio:3/2;border-radius:12px;overflow:hidden;background:#3b3f55}
+.room{position:absolute;width:calc(33.333% - 6px);height:calc(33.333% - 6px);margin:3px;border-radius:8px;overflow:hidden}
+.room .lbl{position:absolute;left:8px;top:6px;font-weight:650;font-size:12px;color:#1d2133}
+.room .sub{position:absolute;left:8px;top:22px;font-size:10px;color:#3d435e}
+.room .info{position:absolute;right:8px;top:6px;font-size:10px;background:#ffffffaa;color:#1d2133;padding:2px 6px;border-radius:6px;font-weight:600}
+.floor-a{background:repeating-linear-gradient(90deg,#e8dcc6 0 22px,#e2d4bb 22px 44px)}
+.floor-b{background:repeating-linear-gradient(0deg,#d9e3ea 0 20px,#d1dce4 20px 40px)}
+.floor-c{background:repeating-conic-gradient(#e9e4f3 0 25%,#e1daee 0 50%) 0 0/28px 28px}
+.floor-d{background:repeating-linear-gradient(45deg,#dfe9d9 0 14px,#d6e2cf 14px 28px)}
+.floor-e{background:#cfd3db}
+.desk{position:absolute;width:62px;height:20px;background:#8b5e3c;border-radius:4px;transform:translate(-50%,-55%);z-index:6;box-shadow:0 3px 0 #5f3f27}
+.desk::after{content:"";position:absolute;left:50%;top:-14px;width:22px;height:14px;transform:translateX(-50%);background:#1f2937;border-radius:3px 3px 0 0;border:2px solid #374151}
+.desk.on::after{background:#38bdf8;box-shadow:0 0 10px #38bdf8}
+.prop{position:absolute;transform:translate(-50%,-50%);z-index:3}
+.shelf{width:110px;height:34px;background:repeating-linear-gradient(90deg,#7c5a3c 0 6px,#c4a07a 6px 18px,#e3c79a 18px 26px);border:3px solid #5f3f27;border-radius:3px}
+.table{width:120px;height:46px;background:#9a6b45;border-radius:24px;box-shadow:0 4px 0 #6b4a30}
+.rack{width:26px;height:56px;background:#1f2937;border-radius:3px;display:inline-block;margin:0 4px;position:relative}
+.rack i{position:absolute;left:5px;width:5px;height:5px;border-radius:50%;background:#22c55e;animation:blink 1.2s infinite}
+.rack i:nth-child(2){top:14px;animation-delay:.3s}.rack i:nth-child(1){top:6px}.rack i:nth-child(3){top:22px;animation-delay:.7s;background:#38bdf8}
+.rack.err i:nth-child(1){background:#ef4444}
+.lamp{width:16px;height:16px;border-radius:50%;background:#4b5563;border:3px solid #1f2937}
+.lamp.on{background:#ef4444;box-shadow:0 0 14px #ef4444;animation:blink .9s infinite}
+.bossdesk{width:96px;height:26px;background:#5b3a29;border-radius:5px;box-shadow:0 4px 0 #3e281c}
+.plant{width:18px;height:18px;background:#16a34a;border-radius:50% 50% 40% 40%;box-shadow:0 10px 0 -4px #92400e}
+@keyframes blink{50%{opacity:.35}}
+.agent{position:absolute;width:64px;transform:translate(-50%,-100%);z-index:5;text-align:center;cursor:pointer;transition-property:left,top;transition-timing-function:linear}
+.agent .sprite{position:relative;width:26px;height:40px;margin:0 auto}
+.agent .head{position:absolute;left:4px;top:0;width:18px;height:18px;border-radius:50%;background:#f3c9a6;border:2px solid #3b2a20;z-index:2}
+.agent .head::before{content:"";position:absolute;left:-2px;top:-3px;width:18px;height:8px;border-radius:9px 9px 2px 2px;background:var(--hair,#3b2a20)}
+.agent .body{position:absolute;left:1px;top:15px;width:24px;height:18px;border-radius:9px 9px 4px 4px;background:var(--c);border:2px solid #0006}
+.agent .leg{position:absolute;top:31px;width:6px;height:9px;background:#334155;border-radius:2px}
+.agent .leg.l{left:6px}.agent .leg.r{left:14px}
+.agent .shadow{position:absolute;left:1px;bottom:-3px;width:24px;height:6px;border-radius:50%;background:#0003}
+.agent .name{display:inline-block;margin-top:3px;font-size:9.5px;font-weight:650;background:#111827d9;color:#fff;padding:1px 5px;border-radius:5px;white-space:nowrap}
+.agent .bubble{position:absolute;bottom:calc(100% + 4px);left:50%;transform:translateX(-50%);background:#fff;color:#111;font-size:10px;padding:3px 7px;border-radius:8px;white-space:nowrap;box-shadow:0 2px 6px #0004;display:none;max-width:190px;overflow:hidden;text-overflow:ellipsis}
+.agent .bubble::after{content:"";position:absolute;left:50%;top:100%;border:5px solid transparent;border-top-color:#fff;transform:translateX(-50%)}
+.agent:not(.idle) .bubble{display:block}
+.agent.thinking .bubble b{animation:blink .8s infinite}
+.agent.tool .sprite{animation:bob .35s infinite alternate}
+.agent.walking .leg.l{animation:step .3s infinite alternate}
+.agent.walking .leg.r{animation:step .3s infinite alternate-reverse}
+.agent.walking{z-index:9}
+.agent.waiting .bubble{background:#fef3c7}
+.agent.waiting .sprite::after{content:"!";position:absolute;right:-10px;top:-4px;width:14px;height:14px;border-radius:50%;background:#f59e0b;color:#111;font-weight:800;font-size:10px;line-height:14px;animation:blink .8s infinite}
+.agent.failed .bubble{background:#fee2e2;color:#991b1b}
+.agent.failed .body{filter:saturate(.3) brightness(.8)}
+.agent.done .bubble{background:#dcfce7}
+.agent.draft{opacity:.65}
+.agent.draft .name{background:#7c3aed}
+body.halted .agent{filter:grayscale(1)}
+body.halted #office::after{content:"REM DARURAT AKTIF — semua agent berhenti";position:absolute;inset:auto 0 0 0;background:#7f1d1dee;color:#fff;text-align:center;padding:6px;font-weight:700;z-index:20}
+@keyframes bob{to{transform:translateY(-2px)}}
+@keyframes step{from{transform:translateY(0)}to{transform:translateY(-3px)}}
+.side{display:flex;flex-direction:column;gap:12px;min-width:0}
+#approvals{max-height:300px;overflow:auto}
+.ap{padding:10px 12px;border-bottom:1px solid var(--line)}
+.ap .t{font-weight:650}
+.ap .d{color:var(--mut);font-size:12px;margin:3px 0 7px}
+.ap .lv{font-size:10px;padding:1px 6px;border-radius:5px;background:#3b2a10;color:#fcd34d;margin-right:6px}
+.ap .lv.cs{background:#10302a;color:#6ee7b7}
+.ap .lv.hr{background:#2b2450;color:#c9c2ff}
+.ap button{margin-right:6px;padding:4px 10px}
+.ap .yes{background:#14532d;border-color:#166534}
+.ap .no{background:#3a1520;border-color:#6b2232}
+.ap .timer{float:right;color:var(--mut);font-size:11px}
+.empty{padding:14px 12px;color:var(--mut)}
+#feed{list-style:none;margin:0;padding:0;max-height:380px;overflow:auto;font-size:12px}
+#feed li{padding:6px 12px;border-bottom:1px solid #20253d;display:grid;grid-template-columns:56px 1fr;gap:6px}
+#feed .tm{color:var(--mut);font-variant-numeric:tabular-nums}
+#feed .who{font-weight:650}
+#feed li.k-approval{background:#2a2410}#feed li.k-fail{background:#2a1218}#feed li.k-cs{background:#0f2420}#feed li.k-sys{background:#1d1840}
+.below{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:10px}
+@media(max-width:700px){.below{grid-template-columns:repeat(2,1fr)}}
+.col h3{margin:0 0 6px;font-size:11px;color:var(--mut);text-transform:uppercase;letter-spacing:.05em}
+.chip{background:#20263f;border:1px solid var(--line);border-radius:8px;padding:6px 8px;margin-bottom:6px;font-size:11.5px}
+.chip small{display:block;color:var(--mut)}
+.legend{display:flex;flex-wrap:wrap;gap:12px;padding:8px 12px;color:var(--mut);font-size:11px}
+#drawer{position:fixed;right:12px;top:60px;width:330px;max-height:80vh;overflow:auto;background:var(--panel);border:1px solid #4a5180;border-radius:12px;box-shadow:0 10px 40px #0008;display:none;z-index:50}
+#drawer.open{display:block}
+#drawer .hd{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border-bottom:1px solid var(--line)}
+#drawer dl{display:grid;grid-template-columns:110px 1fr;gap:4px 8px;padding:10px 12px;margin:0}
+#drawer dt{color:var(--mut)}#drawer dd{margin:0}
+#drawer ul{list-style:none;margin:0;padding:0 12px 12px;font-size:12px}
+#drawer li{padding:4px 0;border-bottom:1px solid #20253d}
+select{font:inherit;background:#20263f;color:var(--txt);border:1px solid var(--line);border-radius:8px;padding:5px}
+</style>
+</head>
+<body>
+<header>
+  <h1>🏢 AOS — Kantor Virtual Agent AI</h1>
+  <span class="tag">PROTOTIPE · DATA CONTOH</span>
+  <span class="grow"></span>
+  <span class="meter">Biaya hari ini <span class="bar"><i id="costbar"></i></span> <b id="cost">$0.00</b> / $5.00</span>
+  <span class="meter">Kecepatan <select id="speed"><option value="1">1×</option><option value="2" selected>2×</option><option value="4">4×</option></select></span>
+  <span id="clock" class="meter"></span>
+  <button class="stop" id="stop">⏹ Rem darurat</button>
+</header>
+
+<main>
+  <section style="min-width:0">
+    <div id="office"></div>
+    <div class="legend">
+      <span>💬 berpikir</span><span>⌨️ pakai tool (ikon di gelembung)</span><span>🚶 kirim tugas ke agent lain</span>
+      <span>❗ menunggu persetujuan Anda</span><span>🟥 gagal</span><span>📦 simpan hasil ke Arsip</span><span>🟣 agent DRAFT (usulan Agent Factory)</span>
+      <span>Klik karakter untuk detail</span>
+    </div>
+    <div class="card" style="margin-top:10px">
+      <h2>Papan tugas <span id="taskcount"></span></h2>
+      <div class="below">
+        <div class="col"><h3>Baru</h3><div id="k-BARU"></div></div>
+        <div class="col"><h3>Jalan</h3><div id="k-JALAN"></div></div>
+        <div class="col"><h3>Menunggu persetujuan</h3><div id="k-MENUNGGU"></div></div>
+        <div class="col"><h3>Selesai / ditutup</h3><div id="k-SELESAI"></div></div>
+      </div>
+    </div>
+  </section>
+
+  <aside class="side">
+    <div class="card">
+      <h2>⚠ Menunggu keputusan Anda <span id="apcount">0</span></h2>
+      <div id="approvals"><div class="empty">Belum ada. Aksi L2 dan eskalasi CS akan muncul di sini.</div></div>
+    </div>
+    <div class="card">
+      <h2>Feed aktivitas <span>real-time</span></h2>
+      <ul id="feed"></ul>
+    </div>
+  </aside>
+</main>
+
+<div id="drawer"><div class="hd"><b id="dname"></b><button id="dclose">✕</button></div><dl id="dinfo"></dl><div style="padding:0 12px 6px;color:var(--mut);font-size:11px;text-transform:uppercase">Aktivitas terakhir</div><ul id="dlog"></ul></div>
+
+<script>
+const $=s=>document.querySelector(s);
+const office=$('#office');
+const S={paused:false,speed:2,cost:0,budget:5,archive:0,chats:0,esc:0,errors:0,tid:0,aid:0};
+const ROOMS={
+ direktur:[0,0,'Ruang Direktur','Persetujuan Jauhary','floor-a'],
+ manajer:[1,0,'Ruang Manajer','Orkestrator','floor-c'],
+ rapat:[2,0,'Ruang Rapat','Kolaborasi ≥2 agent','floor-a'],
+ riset:[0,1,'Ruang Riset','Riset & validasi','floor-b'],
+ kreatif:[1,1,'Ruang Kreatif','Copy & prompt gambar','floor-c'],
+ cs:[2,1,'Ruang CS / WhatsApp','Layanan customer (L1-CS)','floor-d'],
+ hr:[0,2,'Ruang HR','Agent Factory','floor-c'],
+ arsip:[1,2,'Ruang Arsip','output/draft & log','floor-b'],
+ server:[2,2,'Ruang Server','API, error, biaya','floor-e']};
+const pt=(room,rx,ry)=>{const[c,r]=ROOMS[room];return{x:c*100/3+rx/3,y:r*100/3+ry/3}};
+const AG={
+ orkestrator:{nama:'Orkestrator',room:'manajer',rx:50,ry:66,c:'#6d5dfc',hair:'#1f2937',model:'Opus',level:'L1 (mengusulkan L2)',tools:'Task, Read, Write'},
+ 'riset-pasar':{nama:'Riset Pasar',room:'riset',rx:30,ry:66,c:'#0ea5e9',hair:'#78350f',model:'Sonnet',level:'L1',tools:'WebSearch, WebFetch, Write'},
+ validator:{nama:'Validator',room:'riset',rx:72,ry:66,c:'#14b8a6',hair:'#111827',model:'Sonnet',level:'L0',tools:'WebFetch, Read'},
+ copywriter:{nama:'Copywriter',room:'kreatif',rx:30,ry:66,c:'#f97316',hair:'#7c2d12',model:'Sonnet',level:'L1',tools:'Read, Write'},
+ 'desain-prompt':{nama:'Desain Prompt',room:'kreatif',rx:72,ry:66,c:'#ec4899',hair:'#4c1d95',model:'Haiku',level:'L1',tools:'Read, Write'},
+ 'cs-wa':{nama:'CS WhatsApp',room:'cs',rx:40,ry:66,c:'#22c55e',hair:'#1e293b',model:'Sonnet',level:'L1-CS (aturan CS)',tools:'FAQ, OrderHero (baca), Link resmi'}};
+const SPOT={direktur:pt('direktur',80,84),arsip:pt('arsip',50,58),hr:pt('hr',50,66)};
+const hist={},tasks={},approvals={};
+
+// ---------- render kantor ----------
+for(const[k,[c,r,l,s,f]]of Object.entries(ROOMS)){
+  const d=document.createElement('div');d.className='room '+f;d.id='room-'+k;
+  d.style.left=c*100/3+'%';d.style.top=r*100/3+'%';
+  d.innerHTML=`<div class="lbl">${l}</div><div class="sub">${s}</div><div class="info" id="info-${k}"></div>`;
+  office.appendChild(d);
+}
+function prop(html,p){const e=document.createElement('div');e.className='prop';e.innerHTML=html;e.style.left=p.x+'%';e.style.top=p.y+'%';office.appendChild(e);return e}
+prop('<div class="bossdesk"></div>',pt('direktur',45,60));
+const lamp=prop('<div class="lamp" id="lamp"></div>',pt('direktur',85,30));
+prop('<div class="plant"></div>',pt('direktur',12,82));
+prop('<div class="table"></div>',pt('rapat',50,62));
+prop('<div class="shelf"></div>',pt('arsip',30,38));prop('<div class="shelf"></div>',pt('arsip',72,38));
+prop('<div class="rack" id="rk1"><i></i><i></i><i></i></div><div class="rack"><i></i><i></i><i></i></div><div class="rack"><i></i><i></i><i></i></div>',pt('server',50,62));
+prop('<div class="plant"></div>',pt('hr',88,80));prop('<div class="plant"></div>',pt('cs',85,80));
+
+function addDesk(id){const a=AG[id];const p=pt(a.room,a.rx,a.ry);const d=document.createElement('div');d.className='desk';d.id='desk-'+id;d.style.left=p.x+'%';d.style.top=(p.y-1)+'%';office.appendChild(d)}
+function addAgent(id,cls='idle'){
+  const a=AG[id];a.home=pt(a.room,a.rx,a.ry);hist[id]=hist[id]||[];
+  const e=document.createElement('div');e.className='agent '+cls;e.id='ag-'+id;e.style.setProperty('--c',a.c);e.style.setProperty('--hair',a.hair);
+  e.innerHTML=`<div class="bubble"></div><div class="sprite"><div class="shadow"></div><div class="leg l"></div><div class="leg r"></div><div class="body"></div><div class="head"></div></div><span class="name">${a.nama}</span>`;
+  e.style.left=a.home.x+'%';e.style.top=a.home.y+'%';e.onclick=()=>openDrawer(id);office.appendChild(e);a.state=cls;
+}
+Object.keys(AG).forEach(id=>{addDesk(id);addAgent(id)});
+
+// ---------- util ----------
+const now=()=>new Date().toLocaleTimeString('id-ID',{timeZone:'Asia/Jakarta',hour12:false});
+async function wait(ms){let t=0;while(t<ms){await new Promise(r=>setTimeout(r,100));if(!S.paused)t+=100*S.speed}}
+function setState(id,st,txt=''){const e=$('#ag-'+id);if(!e)return;e.className='agent '+st;AG[id].state=st;e.querySelector('.bubble').innerHTML=txt;const dk=$('#desk-'+id);if(dk)dk.classList.toggle('on',st==='tool'||st==='thinking')}
+function addCost(x){S.cost+=x;$('#cost').textContent='$'+S.cost.toFixed(2);$('#costbar').style.width=Math.min(100,S.cost/S.budget*100)+'%'}
+function emit(kind,id,text,cost=0){
+  const who=id?(AG[id]?.nama||id):'Sistem';const t=now();
+  const li=document.createElement('li');li.className='k-'+kind;li.innerHTML=`<span class="tm">${t}</span><span><span class="who">${who}</span> — ${text}</span>`;
+  const f=$('#feed');f.prepend(li);while(f.children.length>80)f.lastChild.remove();
+  if(id){hist[id]=hist[id]||[];hist[id].unshift(`${t} · ${text}`);hist[id].length=Math.min(hist[id].length,12);AG[id].cost=(AG[id].cost||0)+cost}
+  if(cost)addCost(cost);refreshInfo();if($('#drawer').classList.contains('open')&&$('#drawer').dataset.id===id)openDrawer(id);
+}
+const rc=()=>+(0.01+Math.random()*0.05).toFixed(3);
+async function walk(id,p){
+  const e=$('#ag-'+id),a=AG[id];const cx=parseFloat(e.style.left),cy=parseFloat(e.style.top);
+  const dist=Math.hypot(p.x-cx,(p.y-cy)*0.67);const dur=Math.max(500,dist*70)/S.speed;
+  const prev=a.state;setState(id,'walking',e.querySelector('.bubble').innerHTML||'🚶');
+  e.style.transitionDuration=dur+'ms';e.style.left=p.x+'%';e.style.top=p.y+'%';
+  await new Promise(r=>setTimeout(r,dur));while(S.paused)await new Promise(r=>setTimeout(r,150));
+}
+async function goHome(id,st='idle',txt=''){await walk(id,AG[id].home);setState(id,st,txt)}
+async function think(id,txt,ms){setState(id,'thinking',`💭 ${txt} <b>…</b>`);emit('think',id,'💭 '+txt,rc()/2);await wait(ms)}
+async function tool(id,icon,name,txt,ms){setState(id,'tool',`${icon} ${name}: ${txt}`);emit('tool',id,`${icon} <b>${name}</b> — ${txt}`,rc());await wait(ms)}
+async function deliver(from,to,tid,txt){
+  emit('msg',from,`📁 kirim tugas ke <b>${AG[to].nama}</b>: ${txt}`);
+  const h=AG[to].home;$('#ag-'+from).querySelector('.bubble').innerHTML='📁 '+txt;
+  await walk(from,{x:h.x+3.5,y:h.y+4});setState(from,'thinking','🗣️ serah terima');await wait(700);
+  setState(to,'thinking',`📥 terima: ${txt}`);goHome(from);await wait(600);
+}
+async function toArsip(id,file){
+  $('#ag-'+id).querySelector('.bubble').innerHTML='📦 '+file;await walk(id,SPOT.arsip);
+  S.archive++;emit('done',id,`📦 simpan <code>${file}</code> ke output/draft/`);setState(id,'done','✅ tersimpan');await wait(700);await goHome(id);
+}
+function newTask(title,owner){const id='T-'+String(++S.tid).padStart(3,'0');tasks[id]={id,title,owner,status:'BARU'};renderTasks();return id}
+function setTask(id,st,owner){tasks[id].status=st;if(owner)tasks[id].owner=owner;renderTasks()}
+function renderTasks(){
+  ['BARU','JALAN','MENUNGGU','SELESAI'].forEach(c=>$('#k-'+c).innerHTML='');
+  Object.values(tasks).slice(-14).forEach(t=>{const col=['DITOLAK','KEDALUWARSA'].includes(t.status)?'SELESAI':t.status;
+    $('#k-'+col).insertAdjacentHTML('afterbegin',`<div class="chip"><b>${t.id}</b> ${t.title}<small>${AG[t.owner]?.nama||t.owner}${t.status!==col?' · '+t.status:''}</small></div>`)});
+  $('#taskcount').textContent=Object.values(tasks).filter(t=>t.status!=='SELESAI'&&t.status!=='DITOLAK'&&t.status!=='KEDALUWARSA').length+' aktif';
+}
+function refreshInfo(){
+  const n=Object.keys(approvals).length;$('#apcount').textContent=n;$('#lamp').classList.toggle('on',n>0);
+  $('#info-direktur').textContent=n?`${n} menunggu`:'kosong';
+  $('#info-arsip').textContent=`${S.archive} file`;$('#info-cs').textContent=`${S.chats} chat · ${S.esc} eskalasi`;
+  $('#info-server').textContent=`API OK · error ${S.errors}`;$('#rk1').classList.toggle('err',S.errors>0);
+  $('#info-manajer').textContent=AG.orkestrator.state==='idle'?'siaga':'bekerja';
+  $('#info-hr').textContent=Object.values(AG).filter(a=>a.draft).length?'1 usulan agent':'—';
+}
+function requestApproval({title,detail,level,agent,kind='l2',timeout=60000,yes='Setujui',no='Tolak'}){
+  const id='A-'+String(++S.aid).padStart(2,'0');
+  return new Promise(res=>{
+    approvals[id]={res};const box=$('#approvals');if(box.querySelector('.empty'))box.innerHTML='';
+    const el=document.createElement('div');el.className='ap';el.id='ap-'+id;
+    el.innerHTML=`<span class="timer" id="tm-${id}"></span><div><span class="lv ${kind}">${level}</span><span class="t">${id} · ${title}</span></div><div class="d">${detail}<br>Diajukan oleh: ${AG[agent]?.nama||agent}</div><button class="yes">✔ ${yes}</button><button class="no">✕ ${no}</button>`;
+    box.prepend(el);emit('approval',agent,`❗ minta persetujuan <b>${id}</b>: ${title}`);
+    let left=timeout;const iv=setInterval(()=>{if(!S.paused)left-=500*S.speed;const t=$('#tm-'+id);if(t)t.textContent=Math.max(0,Math.ceil(left/1000))+' dtk';if(left<=0)finish('timeout')},500);
+    function finish(r){if(!approvals[id])return;clearInterval(iv);delete approvals[id];el.remove();if(!box.children.length)box.innerHTML='<div class="empty">Tidak ada yang menunggu.</div>';refreshInfo();res(r)}
+    el.querySelector('.yes').onclick=()=>{emit('sys',null,`Jauhary <b>menyetujui</b> ${id} (dari dashboard)`);finish('ok')};
+    el.querySelector('.no').onclick=()=>{emit('sys',null,`Jauhary <b>menolak</b> ${id}`);finish('no')};
+    refreshInfo();
+  });
+}
+function openDrawer(id){const a=AG[id];const d=$('#drawer');d.dataset.id=id;d.classList.add('open');$('#dname').textContent=a.nama+(a.draft?' (DRAFT)':'');
+  const cur=Object.values(tasks).filter(t=>t.owner===id&&['JALAN','MENUNGGU'].includes(t.status)).map(t=>t.id+' '+t.title).join('<br>')||'—';
+  $('#dinfo').innerHTML=`<dt>ID</dt><dd>${id}</dd><dt>Status</dt><dd>${a.state.toUpperCase()}</dd><dt>Model</dt><dd>${a.model}</dd><dt>Level maks</dt><dd>${a.level}</dd><dt>Tools</dt><dd>${a.tools}</dd><dt>Tugas aktif</dt><dd>${cur}</dd><dt>Biaya hari ini</dt><dd>$${(a.cost||0).toFixed(3)}</dd>`;
+  $('#dlog').innerHTML=(hist[id]||[]).map(h=>`<li>${h}</li>`).join('')||'<li>Belum ada aktivitas.</li>';}
+$('#dclose').onclick=()=>$('#drawer').classList.remove('open');
+$('#speed').onchange=e=>S.speed=+e.target.value;
+$('#stop').onclick=()=>{S.paused=!S.paused;document.body.classList.toggle('halted',S.paused);$('#stop').textContent=S.paused?'▶ Lanjutkan':'⏹ Rem darurat';emit('sys',null,S.paused?'⛔ <b>REM DARURAT</b> diaktifkan Jauhary — semua tugas dihentikan':'▶ Sistem dilanjutkan')};
+setInterval(()=>$('#clock').textContent=now()+' WIB',1000);
+
+// ---------- skenario 1: tugas riset → copy iklan (dengan aksi L2) ----------
+const TOPIK=['guru SD yang menyusun RPP','ibu rumah tangga yang mengatur menu hemat','freelancer desain yang cari klien'];
+async function scenarioMain(){
+  let cycle=0;
+  while(true){
+    const topik=TOPIK[cycle%TOPIK.length];
+    const tid=newTask(`Riset + copy iklan: ${topik}`,'orkestrator');
+    emit('sys',null,`📱 Pesan WA dari Jauhary: "/tugas riset ${topik} lalu buat copy iklan"`);
+    await think('orkestrator','menafsirkan perintah & memecah tugas',2500);setTask(tid,'JALAN','riset-pasar');
+    await deliver('orkestrator','riset-pasar',tid,'riset pain point');
+    await tool('riset-pasar','🔍','WebSearch',`pain point ${topik}`,2600);
+    await tool('riset-pasar','🌐','WebFetch','forum & review marketplace',2400);
+    await think('riset-pasar','menyusun 7 temuan + sumber',1800);
+    await tool('riset-pasar','📄','Write','draft/riset.md',1200);
+    await deliver('riset-pasar','validator',tid,'verifikasi 7 temuan');setState('riset-pasar','idle');
+    await tool('validator','🔎','WebFetch','cek ulang sumber',2600);
+    emit('tool','validator','✅ 5 dari 7 temuan terverifikasi, 2 ditandai [TIDAK TERVERIFIKASI]');
+    await toArsip('validator','riset-terverifikasi.md');
+    setState('orkestrator','thinking','📥 hasil riset diterima');await wait(1200);
+    await deliver('orkestrator','copywriter',tid,'tulis 3 varian copy');setTask(tid,'JALAN','copywriter');
+    await think('copywriter','memilih angle dari pain point terkuat',2000);
+    await tool('copywriter','✍️','Write','draft/copy-iklan-v1.md',2400);
+    await deliver('copywriter','desain-prompt',tid,'3 prompt gambar');
+    setState('copywriter','idle');
+    await tool('desain-prompt','🎨','Write','prompt gambar 1/3',1800);
+    if(cycle%2===0){
+      S.errors++;setState('desain-prompt','failed','⛔ timeout API, coba ulang 1/2');emit('fail','desain-prompt','⛔ <b>GAGAL</b>: timeout saat menulis prompt 2/3 — retry 1/2');await wait(2200);
+    }
+    await tool('desain-prompt','🎨','Write','prompt gambar 2–3/3',2000);
+    await toArsip('desain-prompt','prompt-gambar.md');
+    // L2: publikasi iklan butuh persetujuan
+    $('#ag-copywriter').querySelector('.bubble').innerHTML='📋 paket iklan';
+    await walk('copywriter',SPOT.direktur);setState('copywriter','waiting','❗ menunggu persetujuan publikasi');setTask(tid,'MENUNGGU');
+    const r=await requestApproval({title:'Publikasikan iklan ke Meta Ads',level:'L2',agent:'copywriter',detail:'3 varian copy + 3 gambar, budget uji Rp50.000/hari, 3 hari. Paket: pending-approval/iklan-'+tid+'.md'});
+    if(r==='ok'){setState('copywriter','done','✅ disetujui — dieksekusi');emit('done','copywriter','🚀 iklan dikirim ke Meta Ads (simulasi)',rc());await wait(1200);await toArsip('copywriter','log-publikasi.md');setTask(tid,'SELESAI')}
+    else if(r==='no'){setState('copywriter','failed','✕ ditolak — revisi');emit('fail','copywriter','✕ publikasi ditolak, catat alasan & kembali ke draft');await wait(1500);await goHome('copywriter');setTask(tid,'DITOLAK')}
+    else{emit('fail','copywriter','⌛ persetujuan kedaluwarsa — aksi TIDAK dijalankan');await goHome('copywriter');setTask(tid,'KEDALUWARSA')}
+    setState('orkestrator','done','📤 kirim ringkasan ke WA Jauhary');emit('msg','orkestrator','📤 ringkasan tugas '+tid+' dikirim ke WhatsApp Jauhary');await wait(1500);setState('orkestrator','idle');
+    if(cycle===0) await scenarioFactory();
+    cycle++;await wait(4000);
+  }
+}
+// ---------- skenario 2: Agent Factory (sekali) ----------
+async function scenarioFactory(){
+  await think('orkestrator','permintaan berulang: analisis komentar TikTok — belum ada agent',2200);
+  emit('sys','orkestrator','🧩 cek registry: tidak ada agent yang cocok → rancang agent baru');
+  $('#ag-orkestrator').querySelector('.bubble').innerHTML='🧩 spec agent baru';
+  await walk('orkestrator',{x:SPOT.hr.x+5,y:SPOT.hr.y+4});
+  AG['analis-komentar']={nama:'Analis Komentar',room:'hr',rx:50,ry:66,c:'#a855f7',hair:'#0f172a',model:'Haiku',level:'L1',tools:'WebFetch, Read, Write',draft:true};
+  addDesk('analis-komentar');addAgent('analis-komentar','draft');setState('analis-komentar','draft','🟣 DRAFT · uji sandbox');
+  emit('sys','analis-komentar','🟣 spec ditulis ke agents-pending/ · validasi kode lolos · uji sandbox berjalan');
+  goHome('orkestrator');
+  requestApproval({title:'Aktifkan agent baru: analis-komentar',level:'AGENT BARU',kind:'hr',agent:'orkestrator',detail:'Model Haiku · tools WebFetch, Read, Write · level L1 · batas $0.30/tugas. Hasil uji: draft/uji-analis-komentar.md',timeout:90000})
+  .then(r=>{const a=AG['analis-komentar'];if(r==='ok'){a.draft=false;setState('analis-komentar','done','✅ AKTIF — siap bertugas');emit('done','analis-komentar','✅ dipindah ke agents/ — status AKTIF');setTimeout(()=>setState('analis-komentar','idle'),3000)}
+    else{emit('fail','analis-komentar',r==='no'?'✕ usulan agent ditolak — dihapus dari pending':'⌛ usulan kedaluwarsa — tetap DRAFT, tidak aktif');if(r==='no'){$('#ag-analis-komentar')?.remove();$('#desk-analis-komentar')?.remove();delete AG['analis-komentar']}}
+    refreshInfo()});
+}
+// ---------- skenario 3: CS WhatsApp (aturan CS) ----------
+const CUST=[
+ {n:'Bu Rina',q:'Status pesanan #OH-1182 sudah dikirim?',t:'status'},
+ {n:'Pak Dedi',q:'Setelah bayar, e-book dikirim ke mana?',t:'faq'},
+ {n:'Mbak Sari',q:'Saya mau refund, file tidak bisa dibuka',t:'esc',why:'REFUND + kata pemicu "tidak bisa dibuka"'},
+ {n:'Bu Lina',q:'Link pembayarannya mana ya kak?',t:'link'},
+ {n:'Pak Hadi',q:'Kalau beli 10 bisa diskon?',t:'esc',why:'NEGOSIASI harga'},
+ {n:'Mas Yoga',q:'Apakah bisa dipakai untuk kurikulum merdeka?',t:'esc',why:'di LUAR daftar FAQ (kecocokan rendah)'}];
+async function scenarioCS(){
+  let i=0;await wait(3000);
+  while(true){
+    const c=CUST[i%CUST.length];S.chats++;
+    emit('cs','cs-wa',`💬 chat masuk dari <b>${c.n}</b>: "${c.q}"`);
+    await think('cs-wa','mencocokkan dengan FAQ & aturan CS',1600);
+    if(c.t==='status'){await tool('cs-wa','🛒','OrderHero (baca)','cek #OH-1182 · nomor WA cocok',2000);await tool('cs-wa','📤','Balas WA','"Sudah dikirim, resi JNE …"',1200);emit('cs','cs-wa','✅ dijawab otomatis (status pesanan, hanya baca)')}
+    else if(c.t==='faq'){await tool('cs-wa','📚','FAQ #3','akses e-book setelah bayar',1400);await tool('cs-wa','📤','Balas WA','jawaban FAQ #3',1200);emit('cs','cs-wa','✅ dijawab otomatis (FAQ disetujui)')}
+    else if(c.t==='link'){await tool('cs-wa','🔗','Link resmi','checkout dari whitelist domain',1300);await tool('cs-wa','📤','Balas WA','link pembayaran resmi',1000);emit('cs','cs-wa','✅ dijawab otomatis (link resmi)')}
+    else{S.esc++;setState('cs-wa','waiting','❗ eskalasi ke Jauhary');emit('approval','cs-wa',`🚨 <b>ESKALASI</b> ${c.n}: ${c.why}`);
+      await tool('cs-wa','📤','Balas WA','"Sudah kami teruskan ke admin, dibalas maks. 2 jam"',1400);
+      const tid=newTask(`Eskalasi CS: ${c.n}`,'cs-wa');setTask(tid,'MENUNGGU');
+      requestApproval({title:`Eskalasi CS — ${c.n}`,level:'CS',kind:'cs',agent:'cs-wa',detail:`"${c.q}" · Alasan: ${c.why}. Bot sudah kirim pesan penahan.`,yes:'Saya ambil alih',no:'Tutup',timeout:90000})
+       .then(r=>{setTask(tid,r==='ok'?'SELESAI':'KEDALUWARSA');emit('cs','cs-wa',r==='ok'?`👤 Jauhary mengambil alih chat ${c.n}`:`chat ${c.n} ditutup/kedaluwarsa — tetap di antrean admin`)});
+    }
+    setState('cs-wa','idle');i++;await wait(7000+Math.random()*4000);
+  }
+}
+emit('sys',null,'Sistem AOS menyala · 6 agent AKTIF dimuat dari registry');
+refreshInfo();renderTasks();scenarioMain();scenarioCS();
+</script>
+</body>
+</html>
