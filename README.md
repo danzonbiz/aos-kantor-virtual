@@ -2,7 +2,7 @@
 
 Dashboard pemantauan sistem **multi-agent AI (Agentic AI Operating System)** yang divisualisasikan sebagai kantor virtual. Setiap agent AI tampil sebagai karyawan di ruangannya, dan setiap animasinya mengikuti aktivitas agent tersebut.
 
-**Demo:** _(isi dengan link Vercel setelah deploy)_
+**Demo:** _https://aos-kantor-virtual.vercel.app/_
 
 > Status: prototipe dengan **data simulasi**. Belum terhubung ke agent sungguhan.
 
